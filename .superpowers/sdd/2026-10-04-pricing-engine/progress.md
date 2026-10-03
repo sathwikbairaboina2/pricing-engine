@@ -61,3 +61,5 @@ Task 22: complete (compose up -d --build -> 5 containers running; price query {d
 Ruling: every compose app service shares the build block through a YAML anchor (plan: only gql builds) - compose would otherwise try to pull pricing-engine-app:local for runner/sim/web before gql builds it - cost: none, build is cached
 Ruling: CI smoke bench uses --rate 5 (plan said 20) - 20/s saturates DynamoDB Local transactions (see bench ruling) and would fail on lost samples - cost: none
 Task 23: complete (actionlint 1.7.12 exit 0; check-readme-headline script written (runs in task 24)) | commit: "ci: run lint, tests, cdk-nag synth, pack check and DynamoDB Local integration"
+Ruling: final latest.json is the last 60 s run (p50 224.5 ms, p99 851.6 ms) made after host load dropped; earlier 60 s runs under saturated CPU measured p50 1508, 18337 and 9084 ms with identical code and are kept as timestamped files in bench/results - disclosed in README - cost: headline reflects a quiet-machine run
+Task 24: complete (check-readme-headline -> headline OK: p99 852 ms, 300 samples) | commit: "docs: add README with measured headline, DEVDOCS draft and handoff"
