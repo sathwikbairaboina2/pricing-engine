@@ -1,0 +1,29 @@
+{
+  "name": "@pricing-engine/functions",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run",
+    "test:int": "vitest run --config vitest.int.config.ts"
+  },
+  "dependencies": {
+    "pricing-rules-core": "workspace:*",
+    "@aws-sdk/client-dynamodb": "3.1146.0",
+    "@aws-sdk/lib-dynamodb": "3.1146.0",
+    "@aws-sdk/client-dynamodb-streams": "3.1146.0",
+    "@aws-sdk/util-dynamodb": "3.996.9",
+    "@aws-sdk/credential-provider-node": "3.972.84",
+    "@smithy/signature-v4": "5.7.4",
+    "@aws-crypto/sha256-js": "5.2.0"
+  },
+  "devDependencies": {
+    "@types/aws-lambda": "8.10.164",
+    "@types/node": "24.19.1",
+    "esbuild": "0.28.2",
+    "tsx": "4.23.15",
+    "typescript": "5.9.3",
+    "vitest": "4.1.11"
+  }
+}
