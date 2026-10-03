@@ -9,3 +9,4 @@ export * from './ddb-store.js';
 export * from './publisher.js';
 export * from './appsync-publisher.js';
 export * from './shim-publisher.js';
+export * from './concurrency.js';

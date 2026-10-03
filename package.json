@@ -16,7 +16,8 @@
     "synth": "pnpm --filter @pricing-engine/infra synth",
     "local": "pnpm --filter @pricing-engine/local exec tsx src/cli.ts",
     "dev": "pnpm local up",
-    "watch": "pnpm local watch"
+    "watch": "pnpm local watch",
+    "bench": "pnpm --filter @pricing-engine/local run bench"
   },
   "devDependencies": {
     "@aws-appsync/eslint-plugin": "2.0.2",

@@ -1,0 +1,29 @@
+{
+  "kind": "pipeline-latency",
+  "scope": "local pipeline (DynamoDB Local + stream runner + GraphQL shim), not AWS",
+  "at": "2026-10-03T23:20:20.410Z",
+  "table": "PricingBench-1791069545202",
+  "ddbImage": "amazon/dynamodb-local:3.3.1",
+  "rate": 5,
+  "durationS": 40,
+  "skus": 100,
+  "pollIntervalMs": 250,
+  "samples": 200,
+  "received": 200,
+  "lost": 0,
+  "mismatches": 0,
+  "invariantViolations": 0,
+  "latencyMs": {
+    "count": 200,
+    "p50": 1043.4,
+    "p95": 2374.1,
+    "p99": 2678.7,
+    "max": 2879.5,
+    "mean": 1106.2
+  },
+  "machine": {
+    "cpu": "AMD Ryzen 9 7900X 12-Core Processor",
+    "platform": "win32",
+    "node": "v24.18.0"
+  }
+}

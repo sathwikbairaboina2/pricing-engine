@@ -1,10 +1,11 @@
 import { evaluate } from 'pricing-rules-core';
 import type { DynamoDBBatchResponse, DynamoDBStreamEvent } from 'aws-lambda';
 import { isNewer, type PricingStore } from './store.js';
+import { DEFAULT_CONCURRENCY, mapLimit } from './concurrency.js';
 import { recordSku } from './stream.js';
 
 export type RecomputeOutcome = 'WRITTEN' | 'STALE' | 'NO_META' | 'NO_PRICE';
-export interface RecomputeDeps { store: PricingStore; now: () => number; log?: (entry: Record<string, unknown>) => void }
+export interface RecomputeDeps { store: PricingStore; now: () => number; log?: (entry: Record<string, unknown>) => void; concurrency?: number }
 
 const defaultLog = (e: Record<string, unknown>) => console.log(JSON.stringify(e));
 
@@ -54,15 +55,19 @@ export function createRecomputeHandler(deps: RecomputeDeps): (event: DynamoDBStr
       list.push(seq);
       bySku.set(sku, list);
     }
-    const batchItemFailures: { itemIdentifier: string }[] = [];
-    for (const [sku, seqs] of bySku) {
+    const groups = [...bySku];
+    const failed = new Array<boolean>(groups.length).fill(false);
+    await mapLimit(groups.length, deps.concurrency ?? DEFAULT_CONCURRENCY, async (i) => {
+      const [sku] = groups[i]!;
       try {
         await recomputeSku(sku, { ...deps, log });
       } catch (e) {
         log({ msg: 'recompute', sku, outcome: 'ERROR', error: e instanceof Error ? e.message : String(e) });
-        for (const s of seqs) batchItemFailures.push({ itemIdentifier: s });
+        failed[i] = true;
       }
-    }
+    });
+    const batchItemFailures: { itemIdentifier: string }[] = [];
+    groups.forEach(([, seqs], i) => { if (failed[i]) for (const s of seqs) batchItemFailures.push({ itemIdentifier: s }); });
     return { batchItemFailures };
   };
 }
