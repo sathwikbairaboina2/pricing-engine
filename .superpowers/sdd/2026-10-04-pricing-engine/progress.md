@@ -34,3 +34,5 @@ Task 2: complete (core vitest -> 28 passed) | commit: "feat(core): add integer m
 Task 11: complete (uv run pytest tests -> all passed (nodes, fakes)) | commit: "feat: prompts and research node functions"
 Task 12: complete (uv run pytest tests -> 54 passed) | commit: "feat: researcher subgraph"
 Task 3: complete (core vitest -> 40 passed; lint+typecheck clean) | commit: "feat(core): add rule-set JSON Schema and semantic validation with JSON pointers"
+Task 4: complete (ending.test.ts passes within core vitest 68 passed total) | commit: "feat(core): snap prices to a configured ending inside an interval"
+Task 5: complete (core vitest -> 68 passed (6 files); lint+typecheck clean) | commit: "feat(core): evaluate rules with band, step limit, ending and decision trace"
