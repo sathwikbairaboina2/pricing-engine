@@ -13,7 +13,10 @@
     "test": "pnpm -r --workspace-concurrency=1 --if-present run test",
     "test:int": "pnpm -r --workspace-concurrency=1 --if-present run test:int",
     "bench:core": "pnpm --filter pricing-rules-core run bench",
-    "synth": "pnpm --filter @pricing-engine/infra synth"
+    "synth": "pnpm --filter @pricing-engine/infra synth",
+    "local": "pnpm --filter @pricing-engine/local exec tsx src/cli.ts",
+    "dev": "pnpm local up",
+    "watch": "pnpm local watch"
   },
   "devDependencies": {
     "@aws-appsync/eslint-plugin": "2.0.2",
