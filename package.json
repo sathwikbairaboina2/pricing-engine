@@ -17,7 +17,9 @@
     "local": "pnpm --filter @pricing-engine/local exec tsx src/cli.ts",
     "dev": "pnpm local up",
     "watch": "pnpm local watch",
-    "bench": "pnpm --filter @pricing-engine/local run bench"
+    "bench": "pnpm --filter @pricing-engine/local run bench",
+    "demo": "docker compose up -d --build",
+    "demo:down": "docker compose down"
   },
   "devDependencies": {
     "@aws-appsync/eslint-plugin": "2.0.2",

@@ -1,7 +1,39 @@
 name: pricing-engine
+
+x-app: &app
+  image: pricing-engine-app:local
+  build:
+    context: .
+    dockerfile: docker/app.Dockerfile
+  depends_on: [dynamodb]
+  restart: on-failure
+
 services:
   dynamodb:
     image: amazon/dynamodb-local:3.3.1
     container_name: pricing-engine-dynamodb
     command: ["-jar", "DynamoDBLocal.jar", "-sharedDb", "-inMemory"]
     ports: ["127.0.0.1:5360:8000"]
+
+  gql:
+    <<: *app
+    container_name: pricing-engine-gql
+    command: ["pnpm", "local", "shim", "--host", "0.0.0.0", "--port", "4000"]
+    ports: ["127.0.0.1:5361:4000"]
+
+  runner:
+    <<: *app
+    container_name: pricing-engine-runner
+    command: ["pnpm", "local", "runner"]
+    depends_on: [dynamodb, gql]
+
+  sim:
+    <<: *app
+    container_name: pricing-engine-sim
+    command: ["sh", "-c", "pnpm local table && pnpm local seed --skus 30 && pnpm local sim --rate 5 --duration 0"]
+
+  web:
+    <<: *app
+    container_name: pricing-engine-web
+    command: ["pnpm", "--filter", "@pricing-engine/web", "preview", "--host", "0.0.0.0", "--port", "5173", "--strictPort"]
+    ports: ["127.0.0.1:5362:5173"]
