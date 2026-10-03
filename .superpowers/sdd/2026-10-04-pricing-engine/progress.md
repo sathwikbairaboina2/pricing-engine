@@ -29,3 +29,4 @@ Rulings:
 - Ruling: ESLint 9.39.5, not 10 - `@aws-appsync/eslint-plugin` peers stop at ESLint ^9 - none.
 - Ruling: `setOverride`, OpenSearch, rule-set activation and the category subscription are v0.2 (spec §3) - keeps v0.1 to at most 25 tasks - documented as known limits.
 - Ruling: there are 5 Review Focus items (plan header), and each is pinned to an owning task test.
+Task 1: complete (pnpm --filter pricing-rules-core test -> 2 passed; lint+typecheck OK) | commit: "chore: scaffold pnpm workspace with core purity lint rule"
