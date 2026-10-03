@@ -1,0 +1,12 @@
+{
+  "kind": "core-evaluate",
+  "at": "2026-10-03T22:33:26.031Z",
+  "calls": 100000,
+  "callsPerSec": 1571376,
+  "p50Us": 0.5,
+  "p99Us": 1.5,
+  "maxUs": 226.2,
+  "node": "v24.18.0",
+  "cpu": "AMD Ryzen 9 7900X 12-Core Processor            ",
+  "platform": "win32"
+}

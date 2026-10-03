@@ -37,3 +37,4 @@ Task 3: complete (core vitest -> 40 passed; lint+typecheck clean) | commit: "fea
 Task 4: complete (ending.test.ts passes within core vitest 68 passed total) | commit: "feat(core): snap prices to a configured ending inside an interval"
 Task 5: complete (core vitest -> 68 passed (6 files); lint+typecheck clean) | commit: "feat(core): evaluate rules with band, step limit, ending and decision trace"
 Task 6: complete (core vitest -> 73 passed (10 files, 10000 runs/property, 2.08s); lint+typecheck clean) | commit: "test(core): add fast-check properties for bounds, step limit, ending and determinism"
+Task 13: complete (uv run pytest tests/test_graph.py -> 10 passed (writer module landed with it); red seen: without max_concurrency test_round_and_fanout_caps failed (assert 3 <= 2)) | commit: "feat: supervisor fan-out with coverage gate and round caps"
