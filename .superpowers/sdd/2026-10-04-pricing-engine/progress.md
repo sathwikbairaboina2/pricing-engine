@@ -33,3 +33,4 @@ Task 1: complete (pnpm --filter pricing-rules-core test -> 2 passed; lint+typech
 Task 2: complete (core vitest -> 28 passed) | commit: "feat(core): add integer money arithmetic with HALF_EVEN and HALF_UP rounding"
 Task 11: complete (uv run pytest tests -> all passed (nodes, fakes)) | commit: "feat: prompts and research node functions"
 Task 12: complete (uv run pytest tests -> 54 passed) | commit: "feat: researcher subgraph"
+Task 3: complete (core vitest -> 40 passed; lint+typecheck clean) | commit: "feat(core): add rule-set JSON Schema and semantic validation with JSON pointers"
