@@ -6,3 +6,6 @@ export * from './clients.js';
 export * from './store.js';
 export * from './recompute.js';
 export * from './ddb-store.js';
+export * from './publisher.js';
+export * from './appsync-publisher.js';
+export * from './shim-publisher.js';
