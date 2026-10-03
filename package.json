@@ -12,7 +12,8 @@
     "typecheck": "pnpm -r --if-present run typecheck",
     "test": "pnpm -r --workspace-concurrency=1 --if-present run test",
     "test:int": "pnpm -r --workspace-concurrency=1 --if-present run test:int",
-    "bench:core": "pnpm --filter pricing-rules-core run bench"
+    "bench:core": "pnpm --filter pricing-rules-core run bench",
+    "synth": "pnpm --filter @pricing-engine/infra synth"
   },
   "devDependencies": {
     "@aws-appsync/eslint-plugin": "2.0.2",
