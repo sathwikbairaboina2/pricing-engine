@@ -1,0 +1,26 @@
+{
+  "name": "@pricing-engine/api",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./appsync-utils-shim": "./src/appsync-utils-shim.js",
+    "./schema.graphql": "./schema.graphql",
+    "./resolvers/*": "./resolvers/*"
+  },
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@aws-sdk/util-dynamodb": "3.996.9"
+  },
+  "devDependencies": {
+    "@aws-appsync/utils": "2.1.1",
+    "@types/node": "24.19.1",
+    "graphql": "16.14.2",
+    "typescript": "5.9.3",
+    "vitest": "4.1.11"
+  }
+}

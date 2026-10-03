@@ -1,0 +1,32 @@
+schema { query: Query mutation: Mutation subscription: Subscription }
+
+enum InputSource { COST COMPETITOR INVENTORY DEMAND }
+
+type Price @aws_cognito_user_pools @aws_iam {
+  sku: ID!
+  priceMinor: Int!
+  currency: String!
+  inputsVersion: Int!
+  ruleSetVersion: Int!
+  computedAt: AWSDateTime!
+}
+
+type TraceStep { ruleId: String! beforeMinor: Int! afterMinor: Int! note: String }
+type Decision { price: Price! trace: [TraceStep!]! }
+
+input PriceInput { sku: ID! priceMinor: Int! currency: String! inputsVersion: Int! ruleSetVersion: Int! computedAt: AWSDateTime! }
+
+type Query {
+  price(sku: ID!): Price
+  decision(sku: ID!): Decision
+  pricesByCategory(category: String!, limit: Int): [Price!]!
+}
+
+type Mutation {
+  putInput(sku: ID!, source: InputSource!, value: Int!, seq: Int!): Boolean! @aws_cognito_user_pools(cognito_groups: ["admin"])
+  publishPrice(input: PriceInput!): Price @aws_iam
+}
+
+type Subscription {
+  onPriceChanged(sku: ID!): Price @aws_subscribe(mutations: ["publishPrice"])
+}
