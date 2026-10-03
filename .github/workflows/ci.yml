@@ -1,0 +1,33 @@
+name: ci
+on: { push: {}, pull_request: {} }
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 24, cache: pnpm }
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm lint
+      - run: pnpm typecheck
+      - run: pnpm test
+      - run: pnpm synth
+      - run: pnpm --filter pricing-rules-core pack:check
+      - run: node scripts/check-readme-headline.mjs
+  integration:
+    runs-on: ubuntu-latest
+    needs: check
+    services:
+      dynamodb:
+        image: amazon/dynamodb-local:3.3.1
+        ports: ["5360:8000"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 24, cache: pnpm }
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm build
+      - run: pnpm test:int
+      - run: pnpm bench --duration 10 --rate 5 --no-latest
