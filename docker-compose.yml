@@ -1,0 +1,7 @@
+name: pricing-engine
+services:
+  dynamodb:
+    image: amazon/dynamodb-local:3.3.1
+    container_name: pricing-engine-dynamodb
+    command: ["-jar", "DynamoDBLocal.jar", "-sharedDb", "-inMemory"]
+    ports: ["127.0.0.1:5360:8000"]
