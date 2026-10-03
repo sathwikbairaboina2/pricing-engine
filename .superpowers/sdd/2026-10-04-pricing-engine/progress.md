@@ -36,3 +36,4 @@ Task 12: complete (uv run pytest tests -> 54 passed) | commit: "feat: researcher
 Task 3: complete (core vitest -> 40 passed; lint+typecheck clean) | commit: "feat(core): add rule-set JSON Schema and semantic validation with JSON pointers"
 Task 4: complete (ending.test.ts passes within core vitest 68 passed total) | commit: "feat(core): snap prices to a configured ending inside an interval"
 Task 5: complete (core vitest -> 68 passed (6 files); lint+typecheck clean) | commit: "feat(core): evaluate rules with band, step limit, ending and decision trace"
+Task 6: complete (core vitest -> 73 passed (10 files, 10000 runs/property, 2.08s); lint+typecheck clean) | commit: "test(core): add fast-check properties for bounds, step limit, ending and determinism"
