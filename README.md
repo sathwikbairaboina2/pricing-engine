@@ -1,6 +1,16 @@
-# pricing-engine
+# 💹 pricing-engine
+
+> Stream-driven pricing engine. Input changes recompute prices once, with a version check, and stream them live.
 
 **p99 2194 ms from input change to live subscriber at 5 updates/s, 0 lost of 300** (local pipeline: DynamoDB Local + stream runner + GraphQL shim, 2026-10-04; [method](docs/adr/0007-measured-headline-benchmark.md)).
+
+<!-- readme-header -->
+[![CI](https://github.com/sathwikbairaboina2/pricing-engine/actions/workflows/ci.yml/badge.svg)](https://github.com/sathwikbairaboina2/pricing-engine/actions/workflows/ci.yml) ![License: MIT](https://img.shields.io/badge/license-MIT-blue) ![TypeScript](https://img.shields.io/badge/-TypeScript-555) ![DynamoDB Streams](https://img.shields.io/badge/-DynamoDB%20Streams-555) ![AppSync](https://img.shields.io/badge/-AppSync-555)
+
+| Measured | Source |
+|---|---|
+| **p50 172.5 ms to subscriber** | `bench/results/latest.json` |
+| **0 lost** | `bench/results/latest.json` |
 
 A stream-driven pricing engine. An input write (cost, competitor price, stock) lands in DynamoDB, a stream handler re-evaluates a JSON rule set, writes the new price once, and pushes it to subscribers over GraphQL. The rule engine is a separate pure package, `pricing-rules-core`, with integer money, a decision trace for every price, and property tests.
 
