@@ -6,6 +6,7 @@ import type { PriceMessage } from '@pricing-engine/functions';
 import { evaluate } from 'pricing-rules-core';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { defaultRuleSet, localClients, requireDynamoLocal, seedSku, tempTable } from '../../functions/test/support/ddb.js';
+import { putOverride } from '../src/seed.js';
 import { startRunner } from '../src/runner.js';
 
 const wait = async (cond: () => boolean | Promise<boolean>, ms = 5000) => {
@@ -67,5 +68,11 @@ describe.skipIf(process.env['PRICING_INTEGRATION'] !== '1')('local runner (Dynam
     await sleep(2000);
     expect(((await current())!['inputsVersion'] as number)).toBeGreaterThan(before);
     expect(messages).toHaveLength(2);
+  });
+  it('applies an override written by putOverride and publishes it', async () => {
+    const before = messages.length;
+    await putOverride(clients.doc, table.name, { sku: 'RUN1', priceMinor: 1799, minutes: 5 });
+    await wait(() => messages.length > before);
+    expect(messages[messages.length - 1]!.priceMinor).toBe(1799);
   });
 });

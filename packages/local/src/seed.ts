@@ -1,9 +1,23 @@
-import { PutCommand, type DynamoDBDocumentClient } from '@aws-sdk/lib-dynamodb';
+import { GetCommand, PutCommand, type DynamoDBDocumentClient } from '@aws-sdk/lib-dynamodb';
 import type { RuleSet } from 'pricing-rules-core';
 
 export async function putRuleSet(doc: DynamoDBDocumentClient, table: string, rs: RuleSet): Promise<void> {
   await doc.send(new PutCommand({ TableName: table, Item: { PK: `RULESET#${rs.id}`, SK: `v${rs.version}`, ruleSet: rs, status: 'ACTIVE' } }));
   await doc.send(new PutCommand({ TableName: table, Item: { PK: `RULESET#${rs.id}`, SK: 'ACTIVE', version: rs.version } }));
+}
+
+/** Writes an OVERRIDE item with a seq one above the previous override, so inputsVersion rises and the recompute is not STALE. */
+export async function putOverride(
+  doc: DynamoDBDocumentClient,
+  table: string,
+  o: { sku: string; priceMinor: number; minutes: number; now?: number },
+): Promise<{ seq: number; expiresAt: number }> {
+  const key = { PK: `SKU#${o.sku}`, SK: 'OVERRIDE' };
+  const prev = await doc.send(new GetCommand({ TableName: table, Key: key, ConsistentRead: true }));
+  const seq = Number(prev.Item?.['seq'] ?? 0) + 1;
+  const expiresAt = (o.now ?? Date.now()) + o.minutes * 60_000;
+  await doc.send(new PutCommand({ TableName: table, Item: { ...key, priceMinor: o.priceMinor, expiresAt, seq } }));
+  return { seq, expiresAt };
 }
 
 const isConditionalFailure = (e: unknown) => (e as Error).name === 'ConditionalCheckFailedException';

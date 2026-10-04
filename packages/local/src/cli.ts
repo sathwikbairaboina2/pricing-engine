@@ -3,7 +3,7 @@ import { createDynamoClients, ensureTable, ShimPublisher } from '@pricing-engine
 import { env } from './env.js';
 import { BENCH_RULESET, DEFAULT_RULESET } from './rulesets.js';
 import { startRunner } from './runner.js';
-import { putRuleSet, seedCatalog } from './seed.js';
+import { putOverride, putRuleSet, seedCatalog } from './seed.js';
 import { startShim } from './shim.js';
 import { runSim } from './sim.js';
 import { watch } from './watch.js';
@@ -15,6 +15,7 @@ const USAGE = `usage: pnpm local <command> [options]
   shim   [--host 127.0.0.1] [--port 5361]     GraphQL shim
   up                                          table + seed + shim + runner in one process
   sim    [--rate 5] [--duration 0] [--seed 42] [--prefix SKU] [--skus 30]
+  override --sku SKU-0001 --price 799 [--minutes 5]   price override in minor units (expires; expiry itself emits no event)
   watch  [--category coffee] [--seconds N]    print live price ticks`;
 
 const argv = process.argv.slice(2).filter((a) => a !== '--');
@@ -33,6 +34,9 @@ const { values } = parseArgs({
     seed: { type: 'string', default: '42' },
     category: { type: 'string' },
     seconds: { type: 'string' },
+    sku: { type: 'string' },
+    price: { type: 'string' },
+    minutes: { type: 'string', default: '5' },
   },
 });
 
@@ -116,6 +120,16 @@ switch (command) {
       signal: abort.signal,
     });
     console.log(`sim done: ${res.writes} writes, ${res.skipped} resynced`);
+    break;
+  }
+  case 'override': {
+    const priceMinor = Number(values.price);
+    if (!values.sku || !Number.isInteger(priceMinor) || priceMinor < 0) {
+      console.error('override needs --sku and an integer --price in minor units');
+      process.exit(2);
+    }
+    const r = await putOverride(clients.doc, env.table, { sku: values.sku, priceMinor, minutes: Number(values.minutes) });
+    console.log(`override on ${values.sku}: ${priceMinor} minor units until ${new Date(r.expiresAt).toISOString()} (seq ${r.seq})`);
     break;
   }
   case 'watch': {
