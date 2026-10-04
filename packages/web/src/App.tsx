@@ -1,5 +1,6 @@
-import { useEffect, useMemo, useReducer, useState } from 'react';
+import { useEffect, useMemo, useReducer, useRef, useState } from 'react';
 import { onConnection, query, subscribePrices, type ConnectionState } from './gql.js';
+import { startFeed } from './feed.js';
 import { applyPrice, direction, formatMinor, type Price, type Rows } from './priceStore.js';
 
 const CATEGORIES = ['coffee', 'tea', 'cocoa'] as const;
@@ -26,22 +27,34 @@ export function App() {
   const [trace, setTrace] = useState<TraceStep[] | undefined>();
   const [, tick] = useReducer((n: number) => n + 1, 0);
 
-  useEffect(() => onConnection(setConn), []);
+  const feedRef = useRef<{ reconnect: () => void } | undefined>(undefined);
+  useEffect(() => {
+    let sawLive = false;
+    return onConnection((s) => {
+      setConn(s);
+      if (s === 'live') {
+        if (sawLive) feedRef.current?.reconnect();
+        sawLive = true;
+      }
+    });
+  }, []);
 
   useEffect(() => {
-    let off = () => {};
-    let cancelled = false;
     setStatus('loading');
     setSelected(undefined);
-    query<{ pricesByCategory: Price[] }>(PRICES_QUERY, { c: category })
-      .then((d) => {
-        if (cancelled) return;
-        dispatch({ type: 'reset', rows: d.pricesByCategory });
-        off = subscribePrices(d.pricesByCategory.map((p) => p.sku), (price) => dispatch({ type: 'price', price, at: Date.now() }));
-        setStatus('ready');
-      })
-      .catch((e: unknown) => { if (!cancelled) { setError(e instanceof Error ? e.message : String(e)); setStatus('error'); } });
-    return () => { cancelled = true; off(); };
+    dispatch({ type: 'reset', rows: [] });
+    const feed = startFeed({
+      load: async () => (await query<{ pricesByCategory: Price[] }>(PRICES_QUERY, { c: category })).pricesByCategory,
+      subscribe: (skus) => subscribePrices(skus, (price) => dispatch({ type: 'price', price, at: Date.now() })),
+      onRows: (list) => list.forEach((price) => dispatch({ type: 'price', price, at: Date.now() })),
+      onStatus: (st) => {
+        if (st.startsWith('error:')) { setError(st.slice(6)); setStatus((prev) => (prev === 'ready' ? 'ready' : 'error')); } else setStatus('ready');
+      },
+      emptyRetryMs: 1000,
+      refreshMs: 5000,
+    });
+    feedRef.current = feed;
+    return () => { feed.stop(); if (feedRef.current === feed) feedRef.current = undefined; };
   }, [category]);
 
   useEffect(() => {
@@ -85,7 +98,7 @@ export function App() {
         <section aria-live="off">
           {status === 'loading' && <div className="grid" aria-busy="true">{Array.from({ length: 8 }, (_, i) => <div key={i} className="card skeleton" />)}</div>}
           {status === 'error' && <p className="error">Could not load prices: {error}. Is the shim running on port 5361?</p>}
-          {status === 'ready' && list.length === 0 && <p className="empty">No prices yet. Run <code>pnpm local sim</code> to generate input changes.</p>}
+          {status === 'ready' && list.length === 0 && <p className="empty">No prices yet. Waiting for the runner to price the seeded SKUs; run <code>pnpm local sim</code> to generate input changes.</p>}
           {status === 'ready' && list.length > 0 && (
             <div className="grid">
               {list.map((r) => {
