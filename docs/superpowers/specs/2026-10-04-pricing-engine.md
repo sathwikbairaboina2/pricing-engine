@@ -34,7 +34,7 @@ In v0.1:
 - React + Vite live price grid with decision trace panel.
 - `docker-compose.yml` (all containers `pricing-engine-*`, host ports 5360-5362), CI workflow, README, DEVDOCS, handoff.
 
-Deferred to v0.2 (documented as known limits): OpenSearch indexer and `searchProducts`; rule-set editor, `upsertRuleSet`/`activateRuleSet`/`previewRuleSet` and bulk reprice; `setOverride` mutation (overrides are in core and the recompute path, seeded by CLI only); category subscription; real AWS deploy and the AWS latency run; AppSync Events comparison; Bedrock rule proposals.
+Deferred to v0.2 (documented as known limits): OpenSearch indexer and `searchProducts`; rule-set editor, `upsertRuleSet`/`activateRuleSet`/`previewRuleSet` and bulk reprice; `setOverride` mutation (overrides are in core and the recompute path, written by `pnpm local override` only; an override's expiry emits no stream event, so the price stays at the override value until an input of that SKU changes; deleting an `INPUT#` or `OVERRIDE` item lowers `inputsVersion` and makes later recomputes STALE until the sum climbs back); category subscription; real AWS deploy and the AWS latency run; AppSync Events comparison; Bedrock rule proposals.
 
 ## 4. Deviations from the design doc (each recorded in an ADR)
 

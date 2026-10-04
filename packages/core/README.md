@@ -47,3 +47,7 @@ Each runs 10,000 cases by default (`FC_NUM_RUNS` overrides).
 ## Benchmark
 
 Written by `pnpm bench:core` to `bench/results/core-latest.json`: see that file for the current numbers (calls per second, p50 and p99 per call).
+
+## Limits
+
+The engine accepts money and versions up to 1e12. The surrounding pricing-engine API uses GraphQL `Int` (32 bit, at most 2,147,483,647 minor units, about 21.4M EUR), so larger values are rejected before they reach the engine.

@@ -4,7 +4,7 @@
 
 A stream-driven pricing engine. Input changes in DynamoDB trigger a recompute, the new price is written once with a version check, and subscribers get it over GraphQL. The rule engine (`pricing-rules-core`) is pure and publishable.
 
-Measured headline (from `bench/results/latest.json`): p99 735 ms from input change to live subscriber at 5 updates/s, 0 lost of 300 samples. This is the local pipeline (DynamoDB Local + stream runner + GraphQL shim), not AWS.
+Measured headline (from `bench/results/latest.json`): p99 1315 ms from input change to live subscriber at 5 updates/s, 0 lost of 300 samples. This is the local pipeline (DynamoDB Local + stream runner + GraphQL shim), not AWS.
 
 ## 2. Quickstart (5 minutes)
 
@@ -80,7 +80,7 @@ Rule: every writer of input items must keep the `seq` condition (`attribute_not_
 - Recompute from stored state with a version-pair token and history under `HIST#<sku>` ([0004](adr/0004-recompute-from-state-with-version-token.md)): a transaction per price costs write throughput.
 - Publisher at-least-once, IAM-only `publishPrice`, local publish token ([0005](adr/0005-publisher-and-auth.md)).
 - Prebundled Lambdas and a cdk-nag gate ([0006](adr/0006-prebundled-lambdas-and-cdk-nag.md)).
-- Headline from `pnpm bench` ([0007](adr/0007-measured-headline-benchmark.md)). The builder lowered the rate to 5 updates/s because DynamoDB Local serialized transactional writes on a stream-enabled table.
+- Headline from `pnpm bench` ([0007](adr/0007-measured-headline-benchmark.md)). The default rate is 5 updates/s because higher rates queue on DynamoDB Local (probably its serialized transactional writes; not isolated): at 20/s p50 was 1.8 s and at a nominal 50/s p50 was 7.0 s with 0 lost and 189 of 500 updates superseded. A superseded update is one replaced by a newer version of the same SKU before it was priced, which is by design.
 
 cdk-nag acknowledgements (`infra/src/nag-acknowledgements.ts`): AWS managed policies on the two function roles, the LogRetention helper and the AppSync log role (IAM4); the LogRetention helper wildcard and the table `/index/*` for the AppSync data source (IAM5); optional MFA and no Plus plan on the demo user pool (COG2, COG8); no DLQ for the DLQs (SQS3).
 
@@ -88,5 +88,8 @@ cdk-nag acknowledgements (`infra/src/nag-acknowledgements.ts`): AWS managed poli
 
 - Local pipeline only. Nothing was deployed to AWS; AppSync, Cognito and the event source mappings are proven by synth and assertions.
 - Latency depends on machine load: runs on a saturated host measured p50 from 1.5 s to 18 s. Re-run `pnpm bench` on a quiet machine.
-- The grid UI was built and served (HTTP 200) but not visually checked.
+- Overrides: an override's expiry emits no stream event, so the price stays at the override value until some input of that SKU changes. Create one with `pnpm local override --sku SKU-0001 --price 799 --minutes 5`.
+- Deleting an `INPUT#` or `OVERRIDE` item lowers `inputsVersion` (the sum of the `seq` values), so later recomputes are STALE until the sum climbs back. Do not delete them; write a higher `seq` instead.
+- Money and version fields are GraphQL `Int` (32 bit, at most 2,147,483,647, about 21.4M EUR in minor units). Larger values are rejected by GraphQL validation, locally and on AppSync, although `pricing-rules-core` accepts up to 1e12.
+- The benchmark counts a missing update as `superseded` when a newer version of the same SKU arrived, and as `lost` otherwise. Only `lost`, mismatches and invariant violations fail it.
 - v0.2: OpenSearch indexer and search, rule-set editor and activation, `setOverride` mutation, category subscription, real AWS deploy, AWS latency run.

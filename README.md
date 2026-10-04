@@ -1,6 +1,6 @@
 # pricing-engine
 
-**p99 735 ms from input change to live subscriber at 5 updates/s, 0 lost of 300** (local pipeline: DynamoDB Local + stream runner + GraphQL shim, 2026-10-04; [method](docs/adr/0007-measured-headline-benchmark.md)).
+**p99 1315 ms from input change to live subscriber at 5 updates/s, 0 lost of 300** (local pipeline: DynamoDB Local + stream runner + GraphQL shim, 2026-10-04; [method](docs/adr/0007-measured-headline-benchmark.md)).
 
 A stream-driven pricing engine. An input write (cost, competitor price, stock) lands in DynamoDB, a stream handler re-evaluates a JSON rule set, writes the new price once, and pushes it to subscribers over GraphQL. The rule engine is a separate pure package, `pricing-rules-core`, with integer money, a decision trace for every price, and property tests.
 
@@ -91,10 +91,10 @@ Both come from files the benchmark commands wrote. Re-run them to compare on you
 
 | Metric | Value |
 | --- | --- |
-| p50 | 333.6 ms |
-| p95 | 630.4 ms |
-| p99 | 734.8 ms |
-| max | 846.2 ms |
+| p50 | 342.8 ms |
+| p95 | 789.8 ms |
+| p99 | 1314.9 ms |
+| max | 1695.3 ms |
 | samples / superseded / lost / mismatches / invariant violations | 300 / 0 / 0 / 0 / 0 |
 | achieved send rate | 5.01 updates/s |
 
