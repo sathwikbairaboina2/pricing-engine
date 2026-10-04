@@ -4,7 +4,7 @@ export default defineConfig({
     include: ['test/**/*.int.test.ts'],
     env: { PRICING_INTEGRATION: '1' },
     testTimeout: 30000,
-    hookTimeout: 30000,
+    hookTimeout: 60000,
     fileParallelism: false,
   },
 });

@@ -29,5 +29,7 @@ jobs:
         with: { node-version: 24, cache: pnpm }
       - run: pnpm install --frozen-lockfile
       - run: pnpm build
+      - name: Wait for DynamoDB Local
+        run: timeout 60 bash -c 'until (exec 3<>/dev/tcp/127.0.0.1/5360) 2>/dev/null; do sleep 1; done'
       - run: pnpm test:int
       - run: pnpm bench --duration 10 --rate 5 --no-latest

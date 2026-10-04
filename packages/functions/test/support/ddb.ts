@@ -8,11 +8,19 @@ import { ensureTable } from '../../src/table-def.js';
 export const DDB_ENDPOINT = process.env['PRICING_DDB_ENDPOINT'] ?? 'http://127.0.0.1:5360';
 export const localClients = (): DynamoClients => createDynamoClients({ endpoint: DDB_ENDPOINT });
 
-export async function requireDynamoLocal(clients: DynamoClients): Promise<void> {
-  try {
-    await clients.ddb.send(new ListTablesCommand({}));
-  } catch {
-    throw new Error(`DynamoDB Local not reachable at ${DDB_ENDPOINT}. Start it with: docker compose up -d dynamodb`);
+/** Retries for up to waitMs so a container that is still starting does not fail the suite. */
+export async function requireDynamoLocal(clients: DynamoClients, waitMs = 25000): Promise<void> {
+  const deadline = Date.now() + waitMs;
+  for (;;) {
+    try {
+      await clients.ddb.send(new ListTablesCommand({}));
+      return;
+    } catch {
+      if (Date.now() >= deadline) {
+        throw new Error(`DynamoDB Local not reachable at ${DDB_ENDPOINT} after ${waitMs / 1000}s. Start it with: docker compose up -d --wait dynamodb`);
+      }
+      await new Promise((r) => setTimeout(r, 500));
+    }
   }
 }
 

@@ -14,6 +14,12 @@ services:
     container_name: pricing-engine-dynamodb
     command: ["-jar", "DynamoDBLocal.jar", "-sharedDb", "-inMemory"]
     ports: ["127.0.0.1:5360:8000"]
+    healthcheck:
+      # the image has no curl; open a TCP connection to the service port with bash
+      test: ["CMD-SHELL", "bash -c 'exec 3<>/dev/tcp/127.0.0.1/8000'"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
 
   gql:
     <<: *app

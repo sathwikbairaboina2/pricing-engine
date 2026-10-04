@@ -50,6 +50,14 @@ describe('publisher handler', () => {
     expect(res.batchItemFailures).toEqual([{ itemIdentifier: '2' }]);
     expect(published.map((m) => m.priceMinor)).toEqual([1, 3]);
   });
+  it('after a failure, fails the rest of that SKU group and does not publish it', async () => {
+    const { handler, published } = setup((_m, n) => n === 1);
+    const res = await handler(event(
+      priceRecord('A', undefined, price(1), '1'), priceRecord('A', price(1), price(2), '2'), priceRecord('B', undefined, price(9), '3'),
+    ));
+    expect(res.batchItemFailures).toEqual([{ itemIdentifier: '1' }, { itemIdentifier: '2' }]);
+    expect(published.map((m) => m.priceMinor)).toEqual([9]);
+  });
   it('is at-least-once itself: a replayed MODIFY publishes again', async () => {
     const { handler, published } = setup();
     const ev = event(priceRecord('A', price(1299), price(1399), '1'));

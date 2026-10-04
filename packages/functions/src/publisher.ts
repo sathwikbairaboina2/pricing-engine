@@ -45,7 +45,9 @@ export function createPublisherHandler(deps: {
     const failedIdx = new Set<number>();
     const lists = [...groups.values()];
     await mapLimit(lists.length, deps.concurrency ?? DEFAULT_CONCURRENCY, async (g) => {
-      for (const idx of lists[g]!) {
+      const group = lists[g]!;
+      for (let pos = 0; pos < group.length; pos++) {
+        const idx = group[pos]!;
         const r = event.Records[idx]!;
         if (r.eventName !== 'INSERT' && r.eventName !== 'MODIFY') continue;
         if (recordKeys(r)?.SK !== SK.PRICE_CURRENT) continue;
@@ -59,7 +61,9 @@ export function createPublisherHandler(deps: {
           log({ msg: 'publish', sku, outcome: 'PUBLISHED' });
         } catch (e) {
           log({ msg: 'publish', sku, outcome: 'ERROR', error: e instanceof Error ? e.message : String(e) });
-          failedIdx.add(idx);
+          // Retry restarts at the lowest failed sequence number; fail the rest of the group so a newer price is not published before the older one.
+          for (const rest of group.slice(pos)) failedIdx.add(rest);
+          break;
         }
       }
     });

@@ -1,4 +1,4 @@
-import { QueryCommand } from '@aws-sdk/lib-dynamodb';
+import { GetCommand, QueryCommand } from '@aws-sdk/lib-dynamodb';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { DynamoDBStore } from '../src/ddb-store.js';
 import type { PriceWrite } from '../src/store.js';
@@ -29,6 +29,17 @@ describe.skipIf(process.env['PRICING_INTEGRATION'] !== '1')('versioned price wri
   const current = async (sku: string) => (await store.loadSku(sku))?.current;
   const histCount = async (sku: string) =>
     (await clients.doc.send(new QueryCommand({ TableName: table.name, KeyConditionExpression: 'PK = :p', ExpressionAttributeValues: { ':p': `HIST#${sku}` } }))).Items?.length;
+
+  it('stores ttl on history items only, and the current price still loads', async () => {
+    const sku = await fresh();
+    expect(await store.writePrice(write(sku, 10, 1))).toBe('WRITTEN');
+    const cur = await clients.doc.send(new GetCommand({ TableName: table.name, Key: { PK: `SKU#${sku}`, SK: 'PRICE#CURRENT' } }));
+    expect(cur.Item).toBeDefined();
+    expect(cur.Item && 'ttl' in cur.Item).toBe(false);
+    const hist = await clients.doc.send(new QueryCommand({ TableName: table.name, KeyConditionExpression: 'PK = :p', ExpressionAttributeValues: { ':p': `HIST#${sku}` } }));
+    expect(hist.Items?.[0]?.['ttl']).toBe(2_000_000_000);
+    expect((await current(sku))?.inputsVersion).toBe(10);
+  });
 
   it('accepts ascending versions', async () => {
     const sku = await fresh();

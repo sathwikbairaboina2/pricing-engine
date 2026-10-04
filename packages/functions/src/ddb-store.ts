@@ -20,17 +20,17 @@ export function priceItem(w: PriceWrite): Record<string, unknown> {
     ceilingMinor: w.decision.band.ceiling,
     decisionTrace: w.decision.trace,
     computedAt: w.computedAt,
-    ttl: w.ttlEpochSeconds,
     GSI1PK: categoryPk(w.meta.category),
     GSI1SK: skuPk(w.sku),
   };
 }
 
-function historyItem(w: PriceWrite): Record<string, unknown> {
+// Only history items expire; PRICE#CURRENT must never carry a ttl (spec section 5).
+export function historyItem(w: PriceWrite): Record<string, unknown> {
   const rest = priceItem(w);
   delete rest['GSI1PK'];
   delete rest['GSI1SK'];
-  return { ...rest, PK: histPk(w.sku), SK: histSk(w.decision.inputsVersion, w.decision.ruleSetVersion) };
+  return { ...rest, PK: histPk(w.sku), SK: histSk(w.decision.inputsVersion, w.decision.ruleSetVersion), ttl: w.ttlEpochSeconds };
 }
 
 export class DynamoDBStore implements PricingStore {
