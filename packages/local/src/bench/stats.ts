@@ -25,3 +25,32 @@ export function summarize(samples: number[]): { count: number; p50: number; p95:
 export function benchValue(n: number): number {
   return 1100 + (n % 800);
 }
+
+export interface SentSample { at: number; value: number; sku: string; inputsVersion: number }
+
+/**
+ * Splits sent updates into delivered, superseded and lost. The recompute handler prices the latest stored state (ADR 0004),
+ * so a missing (sku, version) followed by a newer received version of the same SKU was coalesced, not lost.
+ */
+export function classifySamples(
+  sent: Map<string, SentSample>,
+  received: Map<string, { at: number; priceMinor: number }>,
+  newest: Map<string, { inputsVersion: number; at: number }>,
+): { latencies: number[]; supersededLatencies: number[]; mismatches: number; lost: number } {
+  const latencies: number[] = [];
+  const supersededLatencies: number[] = [];
+  let mismatches = 0;
+  let lost = 0;
+  for (const [key, s] of sent) {
+    const r = received.get(key);
+    if (r) {
+      latencies.push(r.at - s.at);
+      if (r.priceMinor !== s.value) mismatches++;
+      continue;
+    }
+    const later = newest.get(s.sku);
+    if (later && later.inputsVersion > s.inputsVersion) supersededLatencies.push(later.at - s.at);
+    else lost++;
+  }
+  return { latencies, supersededLatencies, mismatches, lost };
+}

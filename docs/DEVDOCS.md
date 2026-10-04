@@ -4,7 +4,7 @@
 
 A stream-driven pricing engine. Input changes in DynamoDB trigger a recompute, the new price is written once with a version check, and subscribers get it over GraphQL. The rule engine (`pricing-rules-core`) is pure and publishable.
 
-Measured headline (from `bench/results/latest.json`): p99 852 ms from input change to live subscriber at 5 updates/s, 0 lost of 300 samples. This is the local pipeline (DynamoDB Local + stream runner + GraphQL shim), not AWS.
+Measured headline (from `bench/results/latest.json`): p99 735 ms from input change to live subscriber at 5 updates/s, 0 lost of 300 samples. This is the local pipeline (DynamoDB Local + stream runner + GraphQL shim), not AWS.
 
 ## 2. Quickstart (5 minutes)
 

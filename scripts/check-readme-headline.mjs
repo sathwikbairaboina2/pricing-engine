@@ -8,10 +8,13 @@ const readme = readFileSync(join(root, 'README.md'), 'utf8').split(/\r?\n/).slic
 
 const p99 = `p99 ${Math.round(latest.latencyMs.p99)} ms`;
 const samples = latest.samples.toLocaleString('en-US');
-const ok = readme.some((line) => line.includes(p99) && line.includes(samples));
+const rate = `${latest.rate} updates/s`;
+const lost = `${latest.lost} lost`;
+const date = String(latest.at).slice(0, 10);
+const ok = readme.some((line) => [p99, samples, rate, lost, date].every((part) => line.includes(part)));
 
 if (!ok) {
-  console.error(`headline MISMATCH: one of the first 5 README lines must contain "${p99}" and "${samples}" (from bench/results/latest.json)`);
+  console.error(`headline MISMATCH: one of the first 5 README lines must contain "${p99}", "${samples}", "${rate}", "${lost}" and "${date}" (from bench/results/latest.json)`);
   process.exit(1);
 }
-console.log(`headline OK: ${p99}, ${samples} samples`);
+console.log(`headline OK: ${p99}, ${samples} samples, ${rate}, ${lost}, ${date}`);

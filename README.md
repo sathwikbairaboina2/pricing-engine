@@ -1,6 +1,6 @@
 # pricing-engine
 
-**p99 852 ms from input change to live subscriber at 5 updates/s, 0 lost of 300** (local pipeline: DynamoDB Local + stream runner + GraphQL shim, 2026-10-03; [method](docs/adr/0007-measured-headline-benchmark.md)).
+**p99 735 ms from input change to live subscriber at 5 updates/s, 0 lost of 300** (local pipeline: DynamoDB Local + stream runner + GraphQL shim, 2026-10-04; [method](docs/adr/0007-measured-headline-benchmark.md)).
 
 A stream-driven pricing engine. An input write (cost, competitor price, stock) lands in DynamoDB, a stream handler re-evaluates a JSON rule set, writes the new price once, and pushes it to subscribers over GraphQL. The rule engine is a separate pure package, `pricing-rules-core`, with integer money, a decision trace for every price, and property tests.
 
@@ -91,11 +91,14 @@ Both come from files the benchmark commands wrote. Re-run them to compare on you
 
 | Metric | Value |
 | --- | --- |
-| p50 | 224.5 ms |
-| p95 | 570.5 ms |
-| p99 | 851.6 ms |
-| max | 919.4 ms |
-| samples / lost / mismatches / invariant violations | 300 / 0 / 0 / 0 |
+| p50 | 333.6 ms |
+| p95 | 630.4 ms |
+| p99 | 734.8 ms |
+| max | 846.2 ms |
+| samples / superseded / lost / mismatches / invariant violations | 300 / 0 / 0 / 0 / 0 |
+| achieved send rate | 5.01 updates/s |
+
+"Superseded" means a newer version of the same SKU was priced and published instead of this one (the recompute handler prices the latest stored state, ADR 0004). "Lost" means nothing newer arrived within 10 s. Only lost, mismatches and violations fail the run.
 
 Machine: AMD Ryzen 9 7900X 12-Core Processor, win32, Node v24.18.0, DynamoDB Local 3.3.1 in Docker.
 
@@ -105,7 +108,7 @@ Machine: AMD Ryzen 9 7900X 12-Core Processor, win32, Node v24.18.0, DynamoDB Loc
 
 - This is the local pipeline, not AWS. The number excludes network hops and cold starts, and includes DynamoDB Local on a laptop.
 - AppSync, Cognito and the Lambda event source mappings are proven by `cdk synth`, assertions and cdk-nag, not by a deployment. Nothing was deployed.
-- The benchmark runs at 5 updates/s, not 50. On the build machine DynamoDB Local serialized transactional writes on a stream-enabled table, so higher rates queued (at 20 updates/s p50 was seconds, at 30 samples were lost). The result file is the only source for the headline.
+- The benchmark runs at 5 updates/s, not 50. On the build machine DynamoDB Local serialized transactional writes on a stream-enabled table, so higher rates queue: p50 was 1.8 s at 20 updates/s and 7.0 s at a nominal 50 updates/s (achieved 34.6/s), with 0 lost and 189 of 500 updates superseded (see [ADR 0007](docs/adr/0007-measured-headline-benchmark.md) and the 2026-10-04 files in `bench/results/`). The result file is the only source for the headline.
 - Latency depends on machine load. Runs made while the host CPU was saturated measured p50 from 1.5 s to 18 s with the same code; the committed `latest.json` is the last run. The timestamped files in `bench/results/` keep the earlier runs.
 - Deferred to v0.2: OpenSearch indexer and search, rule-set editor and activation, a `setOverride` mutation, category subscriptions, a real AWS deploy and latency run.
 

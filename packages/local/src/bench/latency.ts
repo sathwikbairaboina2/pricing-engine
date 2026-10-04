@@ -14,7 +14,7 @@ import { BENCH_RULESET } from '../rulesets.js';
 import { startRunner } from '../runner.js';
 import { putRuleSet } from '../seed.js';
 import { startShim } from '../shim.js';
-import { benchValue, summarize } from './stats.js';
+import { benchValue, classifySamples, summarize } from './stats.js';
 
 const { values } = parseArgs({
   args: process.argv.slice(2).filter((a) => a !== '--'),
@@ -48,6 +48,9 @@ for (const sku of skus) {
 
 const shim = await startShim({ ddb: clients.ddb, tableName: table, publishToken: env.publishToken, host: '127.0.0.1', port });
 const received = new Map<string, { at: number; priceMinor: number }>();
+// Highest inputsVersion received per SKU, with its arrival time. The recompute handler prices only the latest stored state
+// (ADR 0004), so an update whose version never arrives but is followed by a newer one was coalesced, not lost.
+const newest = new Map<string, { inputsVersion: number; at: number }>();
 const ws = createClient({ url: shim.wsUrl, webSocketImpl: WebSocket });
 await new Promise<void>((resolve, reject) => {
   ws.on('connected', () => resolve());
@@ -61,7 +64,12 @@ for (const sku of skus) {
     {
       next: (m) => {
         const p = m.data?.['onPriceChanged'] as { sku: string; priceMinor: number; inputsVersion: number } | undefined;
-        if (p) received.set(`${p.sku}:${p.inputsVersion}`, { at: performance.now(), priceMinor: p.priceMinor });
+        if (p) {
+          const at = performance.now();
+          received.set(`${p.sku}:${p.inputsVersion}`, { at, priceMinor: p.priceMinor });
+          const cur = newest.get(p.sku);
+          if (!cur || p.inputsVersion > cur.inputsVersion) newest.set(p.sku, { inputsVersion: p.inputsVersion, at });
+        }
       },
       error: () => {},
       complete: () => {},
@@ -91,8 +99,9 @@ while (received.size < skuCount) {
 }
 await sleep(1000);
 received.clear();
+newest.clear();
 
-const sent = new Map<string, { at: number; value: number }>();
+const sent = new Map<string, { at: number; value: number; sku: string; inputsVersion: number }>();
 const counts = new Map<string, number>(skus.map((s) => [s, 0]));
 const total = Math.floor(rate * durationS);
 const inflight = new Set<Promise<unknown>>();
@@ -105,7 +114,7 @@ for (let i = 0; i < total; i++) {
   counts.set(sku, n);
   const value = benchValue(n);
   const seq = 1 + n;
-  sent.set(`${sku}:${1 + seq}`, { at: performance.now(), value });
+  sent.set(`${sku}:${1 + seq}`, { at: performance.now(), value, sku, inputsVersion: 1 + seq });
   const p = put(
     { PK: `SKU#${sku}`, SK: 'INPUT#COMPETITOR', value, seq },
     { ConditionExpression: 'attribute_not_exists(SK) OR #seq < :seq', ExpressionAttributeNames: { '#seq': 'seq' }, ExpressionAttributeValues: { ':seq': seq } },
@@ -114,19 +123,15 @@ for (let i = 0; i < total; i++) {
   if (inflight.size >= 20) await Promise.race(inflight);
 }
 await Promise.all(inflight);
+const sendElapsedS = (performance.now() - t0) / 1000;
 
 const drainDeadline = Date.now() + 10_000;
-while (Date.now() < drainDeadline && [...sent.keys()].some((k) => !received.has(k))) await sleep(50);
+const settled = (k: string, s: { sku: string; inputsVersion: number }) =>
+  received.has(k) || (newest.get(s.sku)?.inputsVersion ?? 0) > s.inputsVersion;
+while (Date.now() < drainDeadline && [...sent].some(([k, s]) => !settled(k, s))) await sleep(50);
 
-const latencies: number[] = [];
-let mismatches = 0;
-for (const [key, s] of sent) {
-  const r = received.get(key);
-  if (!r) continue;
-  latencies.push(r.at - s.at);
-  if (r.priceMinor !== s.value) mismatches++;
-}
-const lost = sent.size - latencies.length;
+const { latencies, supersededLatencies, mismatches, lost } = classifySamples(sent, received, newest);
+const superseded = supersededLatencies.length;
 
 let violations = 0;
 for (const sku of skus) {
@@ -150,8 +155,13 @@ const result = {
   durationS,
   skus: skuCount,
   pollIntervalMs: env.pollIntervalMs,
+  achievedRate: Math.round((sent.size / sendElapsedS) * 100) / 100,
+  sendDurationS: Math.round(sendElapsedS * 100) / 100,
   samples: sent.size,
   received: latencies.length,
+  // superseded: a newer version of the same SKU was priced and published instead (coalesced by design, ADR 0004); lost: nothing newer arrived within 10 s
+  superseded,
+  supersededLatencyMs: superseded > 0 ? summarize(supersededLatencies) : undefined,
   lost,
   mismatches,
   invariantViolations: violations,
@@ -166,7 +176,7 @@ writeFileSync(join(outDir, `${stamp}.json`), JSON.stringify(result, null, 2) + '
 if (!values['no-latest']) writeFileSync(join(outDir, 'latest.json'), JSON.stringify(result, null, 2) + '\n');
 
 console.log(
-  `bench: p50 ${latency?.p50} ms, p95 ${latency?.p95} ms, p99 ${latency?.p99} ms, max ${latency?.max} ms | samples ${sent.size}, lost ${lost}, mismatches ${mismatches}, invariant violations ${violations} | rate ${rate}/s, poll ${env.pollIntervalMs} ms`,
+  `bench: p50 ${latency?.p50} ms, p95 ${latency?.p95} ms, p99 ${latency?.p99} ms, max ${latency?.max} ms | samples ${sent.size}, superseded ${superseded}, lost ${lost}, mismatches ${mismatches}, invariant violations ${violations} | rate ${rate}/s (achieved ${(sent.size / sendElapsedS).toFixed(1)}/s), poll ${env.pollIntervalMs} ms`,
 );
 
 await ws.dispose();

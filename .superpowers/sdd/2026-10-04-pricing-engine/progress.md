@@ -68,3 +68,6 @@ Task 25: complete (clean reinstall: lint/typecheck/test/synth/pack:check exit 0;
 Review fix: finding 1 ttl only on HIST items (priceItem has no ttl; unit test ddb-store.test.ts, int test in concurrency.int.test.ts) -> functions test 34 passed, test:int 12 passed
 Review fix: finding 8 publisher fails rest of SKU group after first failure (unit test added) -> passed
 Review fix: finding 6 requireDynamoLocal retries 25 s, compose healthcheck on dynamodb, CI wait step -> test:int right after compose up --wait passed
+Review fix: finding 3 bench splits superseded from lost (classifySamples + unit tests); reruns: 20/s x30 s achieved 9.95 p50 281 ms 100/600 superseded 0 lost; 20/s achieved 19.98 p50 1801 ms 81/600 superseded 0 lost; 50/s x10 s achieved 34.64 p50 6964 ms 189/500 superseded 0 lost
+Review fix: finding 2 ADR 0007 and spec sections 2, 10 amended to the shipped 5/s design with those numbers; the cause of the queueing (DynamoDB Local transaction serialization) stays labelled as likely, not proven
+Review fix: finding 5 results JSON records achievedRate and sendDurationS; check-readme-headline also asserts rate, lost and date; new latest.json p50 333.6 p99 734.8 samples 300 lost 0 and README headline/table updated from it
