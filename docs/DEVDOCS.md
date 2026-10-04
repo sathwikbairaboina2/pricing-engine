@@ -4,7 +4,7 @@
 
 A stream-driven pricing engine. Input changes in DynamoDB trigger a recompute, the new price is written once with a version check, and subscribers get it over GraphQL. The rule engine (`pricing-rules-core`) is pure and publishable.
 
-Measured headline (from `bench/results/latest.json`): p99 1315 ms from input change to live subscriber at 5 updates/s, 0 lost of 300 samples. This is the local pipeline (DynamoDB Local + stream runner + GraphQL shim), not AWS.
+Measured headline (from `bench/results/latest.json`): p99 2194 ms from input change to live subscriber at 5 updates/s, 0 lost of 300 samples (p50 172.5 ms). This is the local pipeline (DynamoDB Local + stream runner + GraphQL shim), not AWS.
 
 ## 2. Quickstart (5 minutes)
 
@@ -45,7 +45,7 @@ Evaluation order: base price, rules in order, active override, clamp to the band
 | `packages/core` | `pricing-rules-core`: money, rule-set schema, `evaluate()`, property tests, micro-benchmark |
 | `packages/functions` | recompute and publisher handlers, DynamoDB store, AppSync SigV4 publisher, Lambda bundles |
 | `packages/api` | GraphQL schema and APPSYNC_JS resolvers, util shim for local runs |
-| `packages/local` | stream runner, GraphQL shim, CLI (`table`, `seed`, `up`, `sim`, `watch`), latency benchmark |
+| `packages/local` | stream runner, GraphQL shim, CLI (`table`, `seed`, `up`, `sim`, `override`, `watch`), latency benchmark |
 | `packages/web` | React + Vite live price grid |
 | `infra` | CDK stack, cdk-nag acknowledgements, assertion tests |
 | `bench/results` | benchmark output; the README headline is checked against `latest.json` |
@@ -87,7 +87,8 @@ cdk-nag acknowledgements (`infra/src/nag-acknowledgements.ts`): AWS managed poli
 ## 7. Known limits and what is left
 
 - Local pipeline only. Nothing was deployed to AWS; AppSync, Cognito and the event source mappings are proven by synth and assertions.
-- Latency depends on machine load: runs on a saturated host measured p50 from 1.5 s to 18 s. Re-run `pnpm bench` on a quiet machine.
+- Latency depends on machine load: runs on a saturated host measured p50 from 1.5 s to 18 s. Re-run `pnpm bench` on a quiet machine. The current p99 (2194 ms) is a tail on a shared host; the median of the same run is 172.5 ms.
+- The web grid has unit tests and was smoke-checked over HTTP (status 200), but nobody has looked at it in a browser yet.
 - Overrides: an override's expiry emits no stream event, so the price stays at the override value until some input of that SKU changes. Create one with `pnpm local override --sku SKU-0001 --price 799 --minutes 5`.
 - Deleting an `INPUT#` or `OVERRIDE` item lowers `inputsVersion` (the sum of the `seq` values), so later recomputes are STALE until the sum climbs back. Do not delete them; write a higher `seq` instead.
 - Money and version fields are GraphQL `Int` (32 bit, at most 2,147,483,647, about 21.4M EUR in minor units). Larger values are rejected by GraphQL validation, locally and on AppSync, although `pricing-rules-core` accepts up to 1e12.

@@ -7,3 +7,4 @@ coverage/
 .dlq/
 .env
 .env.*
+.tmp/
